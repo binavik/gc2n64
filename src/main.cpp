@@ -13,6 +13,7 @@
 
 //set to 0 to disable serial output over USB
 #define DEBUG 1
+#define WATCHDOG_DELAY_MS 10
 
 auto_init_mutex(gc_data_mutex);
 
@@ -49,34 +50,23 @@ void core1(){
 }
 
 #if DEBUG
-void print_gc(){
-    uint8_t data[8];
-    mutex_enter_blocking(&gc_data_mutex);
-    //fprintf(stderr, "in core 0\n");
-    memcpy(data, gc_status, 8);
-    mutex_exit(&gc_data_mutex);
-    fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
-    //mutex_exit(&gc_data_mutex);
-    //sleep_ms(2);
-}
-
 void core1_print_loop(){
     while(true){
-    uint8_t data[8];
-    mutex_enter_blocking(&gc_data_mutex);
-    //fprintf(stderr, "in core 0\n");
-    memcpy(data, gc_status, 8);
-    memset(gc_status, 0, 8);
-    //controller disconnected, try loading it back up
-    if(data[1] == 0){
-        watchdog_enable(100, 0);
-        while(1){}
-    }
-    else{
-        fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
-        mutex_exit(&gc_data_mutex);
-    }
-    sleep_ms(2);
+        uint8_t data[8];
+        mutex_enter_blocking(&gc_data_mutex);
+        memcpy(data, gc_status, 8);
+        memset(gc_status, 0, 8);
+        //byte always has the MSB set, so if 0 then the
+        //controller disconnected, reset the pico to load it back
+        if(data[1] == 0){
+            watchdog_enable(WATCHDOG_DELAY_MS, 0);
+            while(1){}
+        }
+        else{
+            fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+            mutex_exit(&gc_data_mutex);
+        }
+        sleep_ms(2);
     }
 }
 #endif
