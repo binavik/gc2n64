@@ -1,4 +1,5 @@
 E:/gc2n64_software/build/CMakeFiles/n64_adapter.dir
+E:/gc2n64_software/build/CMakeFiles/n64_adapter_joybus_pio_h.dir
 E:/gc2n64_software/build/CMakeFiles/edit_cache.dir
 E:/gc2n64_software/build/CMakeFiles/rebuild_cache.dir
 E:/gc2n64_software/build/pico-sdk/CMakeFiles/edit_cache.dir

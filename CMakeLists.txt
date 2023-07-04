@@ -11,11 +11,22 @@ pico_sdk_init()
 
 # rest of your project
 
-add_executable(n64_adapter
-    src/main.cpp
+include_directories(
+    include
     )
 
-target_link_libraries(n64_adapter pico_stdlib)
+add_executable(n64_adapter
+    src/main.cpp
+    src/comms.cpp
+    )
+
+pico_generate_pio_header(n64_adapter ${CMAKE_CURRENT_LIST_DIR}/pio/joybus.pio)
+
+target_link_libraries(n64_adapter 
+    pico_stdlib
+    pico_multicore
+    hardware_pio
+    )
 
 pico_enable_stdio_usb(n64_adapter 1)
 pico_enable_stdio_uart(n64_adapter 0)

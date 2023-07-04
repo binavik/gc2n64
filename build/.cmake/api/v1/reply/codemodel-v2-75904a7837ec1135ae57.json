@@ -19,7 +19,8 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						4
+						4,
+						5
 					]
 				},
 				{
@@ -775,8 +776,8 @@
 					"source" : "E:/Program Files/Raspberry Pi/Pico SDK v1.5.0/pico-sdk/src/rp2_common/tinyusb",
 					"targetIndexes" : 
 					[
-						5,
-						6
+						6,
+						7
 					]
 				},
 				{
@@ -1021,7 +1022,8 @@
 					"name" : "n64_adapter",
 					"targetIndexes" : 
 					[
-						4
+						4,
+						5
 					]
 				},
 				{
@@ -1115,8 +1117,8 @@
 						1,
 						2,
 						3,
-						5,
-						6
+						6,
+						7
 					]
 				}
 			],
@@ -1153,8 +1155,15 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "n64_adapter::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-n64_adapter-Debug-1f7f32e27ffa7921806b.json",
+					"jsonFile" : "target-n64_adapter-Debug-62d3cd5988dea95479ea.json",
 					"name" : "n64_adapter",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "n64_adapter_joybus_pio_h::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-n64_adapter_joybus_pio_h-Debug-116ab7cba1d96c8392c5.json",
+					"name" : "n64_adapter_joybus_pio_h",
 					"projectIndex" : 0
 				},
 				{

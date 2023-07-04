@@ -156,6 +156,14 @@
 		},
 		{
 			"isExternal" : true,
+			"path" : "E:/Program Files/Raspberry Pi/Pico SDK v1.5.0/pico-sdk-tools/pico-sdk-tools-config-version.cmake"
+		},
+		{
+			"isExternal" : true,
+			"path" : "E:/Program Files/Raspberry Pi/Pico SDK v1.5.0/pico-sdk-tools/pico-sdk-tools-config.cmake"
+		},
+		{
+			"isExternal" : true,
 			"path" : "E:/Program Files/Raspberry Pi/Pico SDK v1.5.0/pico-sdk/CMakeLists.txt"
 		},
 		{
