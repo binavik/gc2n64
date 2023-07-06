@@ -1,14 +1,7 @@
-#include <stdio.h>
-#include <string.h>
 #include "pico/stdlib.h"
-#include "hardware/pio.h"
-#include "hardware/clocks.h"
-#include "hardware/watchdog.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
-#include "joybus.pio.h"
 
-#include "crc_table.h"
 #include "comms.h"
 
 //set to 0 to disable serial output over USB

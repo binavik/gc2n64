@@ -5,6 +5,7 @@
 #include "joybus.pio.h"
 
 #include "comms.h"
+#include "crc_table.h"
 
 #define WATCHDOG_DELAY_MS 10
 
@@ -34,7 +35,9 @@ static uint8_t n64_stat[4];
 void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, uint32_t* result, int& resultLen){
     // PIO Shifts to the right by default
     // In: pushes batches of 8 shifted left, i.e we get [0x40, 0x03, rumble (the end bit is never pushed)]
+    //      commands from N64 console or results from gamecube controller
     // Out: We push commands for a right shift with an enable pin, ie 5 (101) would be 0b11'10'11
+    //      commands to the gamecube controller or controller status to N64 console
     // So in doesn't need post processing but out does
     if (len == 0) {
         resultLen = 0;
@@ -42,6 +45,7 @@ void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, 
     }
     resultLen = len/2 + 1;
     int i;
+    //is memset faster or more efficient? 
     for (i = 0; i < resultLen; i++) {
         result[i] = 0;
     }
@@ -118,6 +122,7 @@ void __time_critical_func(startN64)(mutex_t mtx){
         mutex_enter_blocking(&mtx);
         memcpy(data, gc_status, 8);
         memset(gc_status, 0, 8);
+        mutex_exit(&mtx);
         //byte always has the MSB set, so if 0 then the
         //controller disconnected, reset the pico to load it back
         if(data[1] == 0){
@@ -126,7 +131,6 @@ void __time_critical_func(startN64)(mutex_t mtx){
         }
         else{
             fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
-            mutex_exit(&mtx);
         }
         sleep_ms(2);
     }
