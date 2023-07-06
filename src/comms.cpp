@@ -1,12 +1,35 @@
 #include <stdio.h>
+#include <string.h>
+#include "hardware/watchdog.h"
 #include "hardware/pio.h"
 #include "joybus.pio.h"
 
-//temp, delete these later
-
-//
-
 #include "comms.h"
+
+#define WATCHDOG_DELAY_MS 10
+
+//global variable, 8 bytes from controller
+//byte 0: bits 0, 0, 0, Start, Y, X, B, A
+//byte 1: bits 1, L, R, Z, Dup, Ddown, Dright, Dleft. Nintendo... why flip Dl and Dr? There's no reason for this
+//byte 2: stick_x
+//byte 3: stick_y
+//byte 4: cstick_x
+//byte 5: cstick_y
+//byte 6: left_trigger
+//byte 7: right_trigger
+static uint8_t gc_status[8];
+
+//Gamecube controller expects absolute values for sticks, with 0 being left/down and 255 being right/up
+//GC still reports zero point so we can use it for the N64, just needs to be saved first
+static uint8_t gc_zero[2];
+
+//global variable, 4 bytes mapped from gc_status
+//byte 0: bits A, B, Z, Start, Dup, Ddown, Dleft, Dright
+//byte 1: Reset, 0, L, R, Cup, Cdown, Cleft, Cright
+//byte 2: stick_x
+//byte 3: stick_y
+static uint8_t n64_stat[4];
+//N64 expects relative, or signed, values for the sticks.
 
 void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, uint32_t* result, int& resultLen){
     // PIO Shifts to the right by default
@@ -32,7 +55,7 @@ void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, 
     result[len / 2] += 3 << (2 * (8 * (len % 2)));
 }
 
-void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* gc_zero, mutex_t mtx){
+void __time_critical_func(startGC)(mutex_t mtx){
     PIO pio = pio0;
     pio_gpio_init(pio, GC_PIN);
     uint offset = pio_add_program(pio, &joybus_program);
@@ -46,10 +69,10 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* gc_zero, mutex_t
     sm_config_set_in_shift(&config, false, true, 8);
     pio_sm_set_enabled(pio, 0, true);
 
-    uint8_t read_command[3] = {0x40, 0x03, 0x00};
+    uint8_t gc_read_command[3] = {0x40, 0x03, 0x00};
     uint32_t result[3]; 
     int resultLen;
-    convertToPio2(read_command, 3, result, resultLen);
+    convertToPio2(gc_read_command, 3, result, resultLen);
 
     //init controller and get zero point, do this once outside of read loop
     pio_sm_set_enabled(pio, 0, false);
@@ -89,6 +112,22 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* gc_zero, mutex_t
     }
 }
 
-void __time_critical_func(startN64)(uint8_t* gc_status, mutex_t mtx){
-
+void __time_critical_func(startN64)(mutex_t mtx){
+    while(true){
+        uint8_t data[8];
+        mutex_enter_blocking(&mtx);
+        memcpy(data, gc_status, 8);
+        memset(gc_status, 0, 8);
+        //byte always has the MSB set, so if 0 then the
+        //controller disconnected, reset the pico to load it back
+        if(data[1] == 0){
+            watchdog_enable(WATCHDOG_DELAY_MS, 0);
+            while(1){}
+        }
+        else{
+            fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+            mutex_exit(&mtx);
+        }
+        sleep_ms(2);
+    }
 }
