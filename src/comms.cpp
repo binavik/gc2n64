@@ -29,7 +29,7 @@ static uint8_t gc_zero[2];
 //byte 1: Reset, 0, L, R, Cup, Cdown, Cleft, Cright
 //byte 2: stick_x
 //byte 3: stick_y
-static uint8_t n64_stat[4];
+static uint8_t n64_status[4];
 //N64 expects relative, or signed, values for the sticks.
 
 void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, uint32_t* result, int& resultLen){
@@ -123,14 +123,33 @@ void __time_critical_func(startN64)(mutex_t mtx){
         memcpy(data, gc_status, 8);
         memset(gc_status, 0, 8);
         mutex_exit(&mtx);
-        //byte always has the MSB set, so if 0 then the
+        memset(n64_status, 0, 4);
+
+        n64_status[N64_A_BYTE] |= ((data[GC_A_BYTE] >> GC_A_BIT) & 0x01) << N64_A_BIT;
+        n64_status[N64_B_BYTE] |= ((data[GC_B_BYTE] >> GC_B_BIT) & 0x01) << N64_B_BIT;
+        n64_status[N64_Z_BYTE] |= ((data[GC_Z_BYTE] >> GC_Z_BIT) & 0x01) << N64_Z_BIT;
+        n64_status[N64_START_BYTE] |= ((data[GC_START_BYTE] >> GC_START_BIT) & 0x01) << N64_START_BIT;
+        n64_status[N64_D_UP_BYTE] |= ((data[GC_D_UP_BYTE] >> GC_D_UP_BIT) & 0x01) << N64_D_UP_BIT;
+        n64_status[N64_D_DOWN_BYTE] |= ((data[GC_D_DOWN_BYTE] >> GC_D_DOWN_BIT) & 0x01) << N64_D_DOWN_BIT;
+        n64_status[N64_D_LEFT_BYTE] |= ((data[GC_D_LEFT_BYTE] >> GC_D_LEFT_BIT) & 0x01) << N64_D_LEFT_BIT;
+        n64_status[N64_D_RIGHT_BYTE] |= ((data[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
+        n64_status[N64_L_BYTE] |= ((data[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
+        n64_status[N64_R_BYTE] |= ((data[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
+        n64_status[N64_C_UP_BYTE] |= ((data[5] > 0xd0) ? 1 : 0) << N64_C_UP_BIT;
+        n64_status[N64_C_DOWN_BYTE] |= ((data[5] < 0x50) ? 1 : 0) << N64_C_DOWN_BIT;
+        n64_status[N64_C_LEFT_BYTE] |= ((data[4] < 0x50) ? 1 : 0) << N64_C_LEFT_BIT;
+        n64_status[N64_C_RIGHT_BYTE] |= ((data[4] > 0xd0) ? 1 : 0) << N64_C_RIGHT_BIT;
+        n64_status[2] = -gc_zero[0] + data[2];
+        n64_status[3] = -gc_zero[1] + data[3];
+
+        //byte 1 always has the MSB set, so if 0 then the
         //controller disconnected, reset the pico to load it back
         if(data[1] == 0){
             watchdog_enable(WATCHDOG_DELAY_MS, 0);
             while(1){}
         }
         else{
-            fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+            fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
         }
         sleep_ms(2);
     }
