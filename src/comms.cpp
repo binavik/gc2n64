@@ -31,7 +31,7 @@ static uint8_t gc_zero[2];
 static uint8_t n64_status[4];
 //N64 expects relative, or signed, values for the sticks.
 
-void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, uint32_t* result, int& resultLen){
+void __time_critical_func(convertToPio)(const uint8_t* command, const int len, uint32_t* result, int& resultLen){
     // PIO Shifts to the right by default
     // In: pushes batches of 8 shifted left, i.e we get [0x40, 0x03, rumble (the end bit is never pushed)]
     //      commands from N64 console or results from gamecube controller
@@ -58,7 +58,7 @@ void __time_critical_func(convertToPio2)(const uint8_t* command, const int len, 
     result[len / 2] += 3 << (2 * (8 * (len % 2)));
 }
 
-void __time_critical_func(startGC)(mutex_t mtx){
+void __time_critical_func(startGC)(mutex_t mtx, uint8_t DEBUG){
     PIO pio = pio0;
     pio_gpio_init(pio, GC_PIN);
     uint offset = pio_add_program(pio, &joybus_program);
@@ -75,7 +75,7 @@ void __time_critical_func(startGC)(mutex_t mtx){
     uint8_t gc_read_command[3] = {0x40, 0x03, 0x00};
     uint32_t result[3]; 
     int resultLen;
-    convertToPio2(gc_read_command, 3, result, resultLen);
+    convertToPio(gc_read_command, 3, result, resultLen);
 
     //init controller and get zero point, do this once outside of read loop
     pio_sm_set_enabled(pio, 0, false);
@@ -115,9 +115,33 @@ void __time_critical_func(startGC)(mutex_t mtx){
     }
 }
 
-void __time_critical_func(startN64)(mutex_t mtx){
+void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
+    PIO pio = pio1;
+    pio_gpio_init(pio, N64_PIN);
+    uint offset = pio_add_program(pio, &joybus_program);
+
+    pio_sm_config config = joybus_program_get_default_config(offset);
+    sm_config_set_in_pins(&config, N64_PIN);
+    sm_config_set_out_pins(&config, N64_PIN, 1);
+    sm_config_set_set_pins(&config, N64_PIN, 1);
+    sm_config_set_clkdiv(&config, 5);
+    sm_config_set_out_shift(&config, true, false, 32);
+    sm_config_set_in_shift(&config, false, true, 8);
+    pio_sm_set_enabled(pio, 0, true);
+
+    //command to send as a response to 0x00 and 0xFF
+    //0x0500 sent by all controllers, 3rd byte is 0x01 if a controller pack is inserted 
+    //or 0x02 if there is no controller pack inserted
+    //or 0x04 if last crc had an error
+    uint8_t n64_info_command[3] = {0x05, 0x00, 0x02};
+    uint32_t n64_info_response[4];
+    int info_send_len;
+    convertToPio(n64_info_command, 3, n64_info_response, info_send_len);
+
+    uint8_t command;
+    uint8_t data[8];
+
     while(true){
-        uint8_t data[8];
         mutex_enter_blocking(&mtx);
         memcpy(data, gc_status, 8);
         memset(gc_status, 0, 8);
@@ -148,9 +172,48 @@ void __time_critical_func(startN64)(mutex_t mtx){
             while(1){}
         }
         else{
-            fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
-            fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+            //fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+            //fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
+            //fprintf(stderr, "%d %d %d %d\n", gc_zero[0], n64_status[2], gc_zero[1], n64_status[3]);
         }
-        sleep_ms(2);
+        fprintf(stderr, "command: ");
+        command = pio_sm_get(pio, 0);
+        fprintf(stderr, "%x\n", command);
+        switch (command)
+        {
+        case 0xFF:
+        case 0x00:
+            fprintf(stderr, "sending controller info\n");
+            pio_sm_set_enabled(pio, 0, false);
+            pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+            pio_sm_set_enabled(pio, 0, true);
+
+            for(int i = 0; i < info_send_len; i++){
+                pio_sm_put_blocking(pio, 0, n64_info_response[i]);
+            }
+            fprintf(stderr,"finish loop\n");
+            break;
+        
+        case 0x01:
+            fprintf(stderr, "sending data\n");
+            uint32_t result[6];
+            int result_len;
+            convertToPio(n64_status, 4, result, result_len);
+
+            for(int i = 0; i < result_len; i++){
+                pio_sm_put_blocking(pio, 0, result[i]);
+            }
+            fprintf(stderr,"finish loop\n");
+            break;
+
+        default:
+            pio_sm_set_enabled(pio, 0, false);
+            sleep_us(100);
+            pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
+            pio_sm_set_enabled(pio, 0, true);
+            break;
+        }
+
+        sleep_ms(10);
     }
 }

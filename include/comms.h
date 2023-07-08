@@ -6,7 +6,7 @@
 
 #define GC_ARR_SIZE 8
 #define GC_PIN 1
-#define N64_PIN 8
+#define N64_PIN 4
 
 #define MAX_NEGATIVE 0x50
 #define MAX_POSITIVE 0xb0
@@ -66,5 +66,5 @@
 #define N64_C_RIGHT_BYTE    1
 #define N64_C_RIGHT_BIT     0
 
-void startGC(mutex_t mtx);
-void startN64(mutex_t mtx);
+void startGC(mutex_t mtx, uint8_t DEBUG);
+void startN64(mutex_t mtx, uint8_t DEBUG);

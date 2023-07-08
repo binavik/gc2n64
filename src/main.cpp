@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "pico/mutex.h"
+#include <stdio.h>
 
 #include "comms.h"
 
@@ -11,7 +12,7 @@ auto_init_mutex(gc_data_mutex);
 
 //one core does nothing but read data from gamecube controller
 void core1(){
-    startGC(gc_data_mutex);
+    startGC(gc_data_mutex, DEBUG);
 }
 
 int main() {
@@ -24,12 +25,12 @@ int main() {
     gpio_init(N64_PIN);
     gpio_set_dir(N64_PIN, GPIO_IN);
 
-    //getchar();
+    getchar();
     //startGC(gc_status, gc_data_mutex);
     multicore_launch_core1(core1);
     //give the gamecube controller time to initialize
-    sleep_ms(50);
-    startN64(gc_data_mutex);
+    sleep_ms(20);
+    startN64(gc_data_mutex, DEBUG);
     //readGC();
     return 0;
 }
