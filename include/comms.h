@@ -2,11 +2,14 @@
 #define comms
 #endif
 
-#include "pico/mutex.h"
+#define WATCHDOG_DELAY_MS 10
 
 #define GC_ARR_SIZE 8
 #define GC_PIN 1
 #define N64_PIN 8
+
+#define MAX_NEGATIVE 0x50
+#define MAX_POSITIVE 0xb0
 
 //button mapping
 #define GC_START_BYTE       0

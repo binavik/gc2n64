@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <pico/mutex.h>
 #include "hardware/watchdog.h"
 #include "hardware/pio.h"
 #include "joybus.pio.h"
 
 #include "comms.h"
 #include "crc_table.h"
-
-#define WATCHDOG_DELAY_MS 10
 
 //global variable, 8 bytes from controller
 //byte 0: bits 0, 0, 0, Start, Y, X, B, A
@@ -135,10 +134,10 @@ void __time_critical_func(startN64)(mutex_t mtx){
         n64_status[N64_D_RIGHT_BYTE] |= ((data[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
         n64_status[N64_L_BYTE] |= ((data[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
         n64_status[N64_R_BYTE] |= ((data[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
-        n64_status[N64_C_UP_BYTE] |= ((data[5] > 0xd0) ? 1 : 0) << N64_C_UP_BIT;
-        n64_status[N64_C_DOWN_BYTE] |= ((data[5] < 0x50) ? 1 : 0) << N64_C_DOWN_BIT;
-        n64_status[N64_C_LEFT_BYTE] |= ((data[4] < 0x50) ? 1 : 0) << N64_C_LEFT_BIT;
-        n64_status[N64_C_RIGHT_BYTE] |= ((data[4] > 0xd0) ? 1 : 0) << N64_C_RIGHT_BIT;
+        n64_status[N64_C_UP_BYTE] |= ((data[5] > MAX_POSITIVE) ? 1 : 0) << N64_C_UP_BIT;
+        n64_status[N64_C_DOWN_BYTE] |= ((data[5] < MAX_NEGATIVE) ? 1 : 0) << N64_C_DOWN_BIT;
+        n64_status[N64_C_LEFT_BYTE] |= ((data[4] < MAX_NEGATIVE) ? 1 : 0) << N64_C_LEFT_BIT;
+        n64_status[N64_C_RIGHT_BYTE] |= ((data[4] > MAX_POSITIVE) ? 1 : 0) << N64_C_RIGHT_BIT;
         n64_status[2] = -gc_zero[0] + data[2];
         n64_status[3] = -gc_zero[1] + data[3];
 
@@ -150,6 +149,7 @@ void __time_critical_func(startN64)(mutex_t mtx){
         }
         else{
             fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+            fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
         }
         sleep_ms(2);
     }
