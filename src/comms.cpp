@@ -127,7 +127,6 @@ void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
     sm_config_set_clkdiv(&config, 5);
     sm_config_set_out_shift(&config, true, false, 32);
     sm_config_set_in_shift(&config, false, true, 8);
-    pio_sm_set_enabled(pio, 0, true);
 
     //command to send as a response to 0x00 and 0xFF
     //0x0500 sent by all controllers, 3rd byte is 0x01 if a controller pack is inserted 
@@ -140,6 +139,9 @@ void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
 
     uint8_t command;
     uint8_t data[8];
+
+    pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
+    pio_sm_set_enabled(pio, 0, true);
 
     while(true){
         mutex_enter_blocking(&mtx);
@@ -176,14 +178,13 @@ void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
             //fprintf(stderr, "%x %x %x %x %x %x %x %x\n", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
             //fprintf(stderr, "%d %d %d %d\n", gc_zero[0], n64_status[2], gc_zero[1], n64_status[3]);
         }
-        fprintf(stderr, "command: ");
-        command = pio_sm_get(pio, 0);
-        fprintf(stderr, "%x\n", command);
+        //fprintf(stderr, "command: ");
+        command = pio_sm_get_blocking(pio, 0);
+        //fprintf(stderr, "%x\n", command);
         switch (command)
         {
         case 0xFF:
         case 0x00:
-            fprintf(stderr, "sending controller info\n");
             pio_sm_set_enabled(pio, 0, false);
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
             pio_sm_set_enabled(pio, 0, true);
@@ -191,19 +192,27 @@ void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
             for(int i = 0; i < info_send_len; i++){
                 pio_sm_put_blocking(pio, 0, n64_info_response[i]);
             }
-            fprintf(stderr,"finish loop\n");
             break;
         
         case 0x01:
-            fprintf(stderr, "sending data\n");
             uint32_t result[6];
             int result_len;
             convertToPio(n64_status, 4, result, result_len);
 
+            pio_sm_set_enabled(pio, 0, false);
+            pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+            pio_sm_set_enabled(pio, 0, true);
+
             for(int i = 0; i < result_len; i++){
                 pio_sm_put_blocking(pio, 0, result[i]);
             }
-            fprintf(stderr,"finish loop\n");
+            //this "delay" here is enough to get the controller functioning in the Everdrive menu and controller tester
+            //games don't see a controller connected, need to try an external pullup resistor or increase the delay
+            for(int i = 0; i < result_len; i++){
+                fprintf(stderr, "%x ", result[i]);
+            }
+            fprintf(stderr, "\n");
+
             break;
 
         default:
@@ -214,6 +223,5 @@ void __time_critical_func(startN64)(mutex_t mtx, uint8_t DEBUG){
             break;
         }
 
-        sleep_ms(10);
     }
 }

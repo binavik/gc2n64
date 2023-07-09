@@ -24,8 +24,8 @@ int main() {
     gpio_set_dir(GC_PIN, GPIO_IN);
     gpio_init(N64_PIN);
     gpio_set_dir(N64_PIN, GPIO_IN);
+    gpio_pull_up(N64_PIN);
 
-    getchar();
     //startGC(gc_status, gc_data_mutex);
     multicore_launch_core1(core1);
     //give the gamecube controller time to initialize

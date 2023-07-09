@@ -14,6 +14,7 @@ inagain: ;
     in pins, 1 ;
     wait 1 pin 0 ;
     jmp inagain ; 
+
 ;
 PUBLIC outmode: ; External code must force a jump here in reaction to the RX FIFO contents
     set pins, 1 ;
