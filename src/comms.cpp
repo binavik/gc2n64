@@ -37,7 +37,7 @@ void __time_critical_func(convertToPio)(const uint8_t* command, const int len, u
     result[len / 2] += 3 << (2 * (8 * (len % 2)));
 }
 
-void __time_critical_func(startGC)(uint8_t* gc_status, bool &read){
+void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool &read){
     PIO pio = pio0;
     pio_gpio_init(pio, GC_PIN);
     uint offset = pio_add_program(pio, &joybus_program);
@@ -53,10 +53,12 @@ void __time_critical_func(startGC)(uint8_t* gc_status, bool &read){
     sm_config_set_in_shift(&config, false, true, 8);
     pio_sm_set_enabled(pio, 0, true);
 
-    uint8_t gc_read_command[3] = {0x40, 0x03, 0x00};
-    uint32_t result[3]; 
-    int resultLen;
-    convertToPio(gc_read_command, 3, result, resultLen);
+    //uint8_t gc_read_command[3] = {0x40, 0x03, 0x00};
+    //uint32_t result[3]; 
+    uint32_t result[2] = {0xfaaaaaae, 0x3aaaa}; 
+    //int resultLen;
+    int resultLen = 2;
+    //convertToPio(gc_read_command, 3, result, resultLen);
 
     //init controller and get zero point, do this once outside of read loop
     pio_sm_set_enabled(pio, 0, false);
@@ -86,6 +88,26 @@ void __time_critical_func(startGC)(uint8_t* gc_status, bool &read){
         for(int i = 0; i < GC_ARR_SIZE; i++){
             gc_status[i] = pio_sm_get_blocking(pio, 0);
         }
+    
+        memset(n64_status, 0, 4);
+
+        n64_status[N64_A_BYTE] |= ((gc_status[GC_A_BYTE] >> GC_A_BIT) & 0x01) << N64_A_BIT;
+        n64_status[N64_B_BYTE] |= ((gc_status[GC_B_BYTE] >> GC_B_BIT) & 0x01) << N64_B_BIT;
+        n64_status[N64_Z_BYTE] |= ((gc_status[GC_Z_BYTE] >> GC_Z_BIT) & 0x01) << N64_Z_BIT;
+        n64_status[N64_START_BYTE] |= ((gc_status[GC_START_BYTE] >> GC_START_BIT) & 0x01) << N64_START_BIT;
+        n64_status[N64_D_UP_BYTE] |= ((gc_status[GC_D_UP_BYTE] >> GC_D_UP_BIT) & 0x01) << N64_D_UP_BIT;
+        n64_status[N64_D_DOWN_BYTE] |= ((gc_status[GC_D_DOWN_BYTE] >> GC_D_DOWN_BIT) & 0x01) << N64_D_DOWN_BIT;
+        n64_status[N64_D_LEFT_BYTE] |= ((gc_status[GC_D_LEFT_BYTE] >> GC_D_LEFT_BIT) & 0x01) << N64_D_LEFT_BIT;
+        n64_status[N64_D_RIGHT_BYTE] |= ((gc_status[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
+        n64_status[N64_L_BYTE] |= ((gc_status[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
+        n64_status[N64_R_BYTE] |= ((gc_status[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
+        n64_status[N64_C_UP_BYTE] |= ((gc_status[5] > MAX_POSITIVE) ? 1 : 0) << N64_C_UP_BIT;
+        n64_status[N64_C_DOWN_BYTE] |= ((gc_status[5] < MAX_NEGATIVE) ? 1 : 0) << N64_C_DOWN_BIT;
+        n64_status[N64_C_LEFT_BYTE] |= ((gc_status[4] < MAX_NEGATIVE) ? 1 : 0) << N64_C_LEFT_BIT;
+        n64_status[N64_C_RIGHT_BYTE] |= ((gc_status[4] > MAX_POSITIVE) ? 1 : 0) << N64_C_RIGHT_BIT;
+        n64_status[2] = gc_zero[0] + gc_status[2];
+        n64_status[3] = gc_zero[1] + gc_status[3];
+
         watchdog_update();
         read = false;
     }
@@ -106,10 +128,12 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
     sm_config_set_out_shift(&config, true, false, 32);
     sm_config_set_in_shift(&config, false, true, 8);
 
-    uint8_t n64_info_command[3] = {0x05, 0x00, 0x02};
-    uint32_t n64_info_response[8];
-    int info_send_len;
-    convertToPio(n64_info_command, 3, n64_info_response, info_send_len);
+    //uint8_t n64_info_command[3] = {0x05, 0x00, 0x02};
+    //uint32_t n64_info_response[8];
+    uint32_t n64_info_response[2] = {0xaaaaeeaa, 0x3baaa};
+    //int info_send_len;
+    int info_send_len = 2;
+    //convertToPio(n64_info_command, 3, n64_info_response, info_send_len);
 
     uint8_t command;
 
@@ -117,26 +141,6 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
     pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
     pio_sm_set_enabled(pio, 0, true);
     while(true){
-        memset(n64_status, 0, 4);
-        while(read){}
-
-        n64_status[N64_A_BYTE] |= ((gc_status[GC_A_BYTE] >> GC_A_BIT) & 0x01) << N64_A_BIT;
-        n64_status[N64_B_BYTE] |= ((gc_status[GC_B_BYTE] >> GC_B_BIT) & 0x01) << N64_B_BIT;
-        n64_status[N64_Z_BYTE] |= ((gc_status[GC_Z_BYTE] >> GC_Z_BIT) & 0x01) << N64_Z_BIT;
-        n64_status[N64_START_BYTE] |= ((gc_status[GC_START_BYTE] >> GC_START_BIT) & 0x01) << N64_START_BIT;
-        n64_status[N64_D_UP_BYTE] |= ((gc_status[GC_D_UP_BYTE] >> GC_D_UP_BIT) & 0x01) << N64_D_UP_BIT;
-        n64_status[N64_D_DOWN_BYTE] |= ((gc_status[GC_D_DOWN_BYTE] >> GC_D_DOWN_BIT) & 0x01) << N64_D_DOWN_BIT;
-        n64_status[N64_D_LEFT_BYTE] |= ((gc_status[GC_D_LEFT_BYTE] >> GC_D_LEFT_BIT) & 0x01) << N64_D_LEFT_BIT;
-        n64_status[N64_D_RIGHT_BYTE] |= ((gc_status[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
-        n64_status[N64_L_BYTE] |= ((gc_status[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
-        n64_status[N64_R_BYTE] |= ((gc_status[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
-        n64_status[N64_C_UP_BYTE] |= ((gc_status[5] > MAX_POSITIVE) ? 1 : 0) << N64_C_UP_BIT;
-        n64_status[N64_C_DOWN_BYTE] |= ((gc_status[5] < MAX_NEGATIVE) ? 1 : 0) << N64_C_DOWN_BIT;
-        n64_status[N64_C_LEFT_BYTE] |= ((gc_status[4] < MAX_NEGATIVE) ? 1 : 0) << N64_C_LEFT_BIT;
-        n64_status[N64_C_RIGHT_BYTE] |= ((gc_status[4] > MAX_POSITIVE) ? 1 : 0) << N64_C_RIGHT_BIT;
-        n64_status[2] = gc_zero[0] + gc_status[2];
-        n64_status[3] = gc_zero[1] + gc_status[3];
-
         command = pio_sm_get_blocking(pio, 0);
 #if DEBUG
         fprintf(stderr, "command: %x\n", command);
@@ -154,6 +158,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             uint32_t result[6];
             int result_len;
             convertToPio(n64_status, 4, result, result_len);
+            while(read){}
 
             pio_sm_set_enabled(pio, 0, false);
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
