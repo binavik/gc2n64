@@ -28,7 +28,7 @@ static uint8_t n64_status[4];
 //N64 expects relative, or signed, values for the sticks.
 
 void core1(){
-    startGC(gc_status, read_flag);
+    startGC(gc_status, n64_status, read_flag);
 }
 
 int main() {
