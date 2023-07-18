@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
+IF(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
+  set(PICO_SDK_FETCH_FROM_GIT on)
+endif()
+
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
 include(pico_sdk_import.cmake)
