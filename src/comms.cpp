@@ -76,7 +76,9 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
     gc_zero[1] = -gc_status[3];      //zero y
     read = false;
     while(true){
-        while(!read){}
+        while(!read){
+            watchdog_update();
+        }
 
         pio_sm_set_enabled(pio, 0, false);
         pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
@@ -135,13 +137,11 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
     int info_send_len = 2;
     //convertToPio(n64_info_command, 3, n64_info_response, info_send_len);
 
-    uint8_t command;
-
     read = true;
     pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
     pio_sm_set_enabled(pio, 0, true);
     while(true){
-        command = pio_sm_get_blocking(pio, 0);
+        uint8_t command = pio_sm_get_blocking(pio, 0);
 #if DEBUG
         fprintf(stderr, "command: %x\n", command);
 #endif
@@ -149,6 +149,8 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             pio_sm_set_enabled(pio, 0, false);
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
             pio_sm_set_enabled(pio, 0, true);
+            while(read){};
+            sleep_us(4);
 
             for(int i = 0; i < info_send_len; i++){
                 pio_sm_put_blocking(pio, 0, n64_info_response[i]);
@@ -159,6 +161,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             int result_len;
             convertToPio(n64_status, 4, result, result_len);
             while(read){}
+            sleep_us(4);
 
             pio_sm_set_enabled(pio, 0, false);
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
@@ -166,10 +169,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
 
             for(int i = 0; i < result_len; i++){
                 pio_sm_put_blocking(pio, 0, result[i]);
-            }
-#if DEBUG
-            fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
-#endif            
+            }    
         }
         else{
 #if DEBUG
