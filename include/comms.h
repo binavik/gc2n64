@@ -5,6 +5,7 @@
 //set to 0 to disable serial output over USB
 #define DEBUG 0
 #define MAX_STICK 82
+#define MAX_TRIGGER 0xb0
 
 #define WATCHDOG_DELAY_MS 100 
 

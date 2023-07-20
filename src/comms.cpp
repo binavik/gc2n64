@@ -109,6 +109,13 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
         n64_status[N64_C_RIGHT_BYTE] |= ((gc_status[4] > MAX_POSITIVE) ? 1 : 0) << N64_C_RIGHT_BIT;
         n64_status[2] = gc_zero[0] + gc_status[2];
         n64_status[3] = gc_zero[1] + gc_status[3];
+        if(gc_status[6] > MAX_TRIGGER){
+            n64_status[1] |= 0x20;
+        }
+        if(gc_status[7] > MAX_TRIGGER){
+            n64_status[1] |= 0x10;
+        }
+
         if((n64_status[1] & 0x20) && (n64_status[1] & 0x10) && (n64_status[0] & 0x10)){
             n64_status[0] &= 0xEF;
             n64_status[1] |= 0x80;
