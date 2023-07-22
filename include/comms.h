@@ -16,6 +16,29 @@
 #define MAX_NEGATIVE 0x50
 #define MAX_POSITIVE 0xb0
 
+struct mapping{
+    uint8_t A_BYTE;
+    uint8_t A_BIT;
+    uint8_t B_BYTE;
+    uint8_t B_BIT;
+    uint8_t Z_BYTE;
+    uint8_t Z_BIT;
+    uint8_t START_BYTE;
+    uint8_t START_BIT;
+    uint8_t D_UP_BYTE;
+    uint8_t D_UP_BIT;
+    uint8_t D_DOWN_BYTE;
+    uint8_t D_DOWN_BIT;
+    uint8_t D_LEFT_BYTE;
+    uint8_t D_LEFT_BIT;
+    uint8_t D_RIGHT_BYTE;
+    uint8_t D_RIGHT_BIT;
+    uint8_t L_BYTE;
+    uint8_t L_BIT;
+    uint8_t R_BYTE;
+    uint8_t R_BIT;
+};
+
 //button mapping
 #define GC_START_BYTE       0
 #define GC_START_BIT        4

@@ -26,6 +26,29 @@ static uint8_t gc_zero[2];
 //byte 3: stick_y
 static uint8_t n64_status[4];
 //N64 expects relative, or signed, values for the sticks.
+//default, in the event no other mappings have been defined
+mapping default_mapping = {
+    0,      // A byte
+    0,      // A bit
+    0,      // B byte
+    1,      // B bit
+    1,      // Z byte
+    4,      // Z bit
+    0,      // Start byte
+    4,      // Start bit
+    1,      // D Up byte
+    3,      // D Up bit
+    1,      // D Down byte
+    2,      // D Down bit
+    1,      // D Left byte
+    0,      // D Left bit
+    1,      // D Right byte
+    1,      // D Right bit
+    1,      // L byte
+    6,      // L bit
+    1,      // R byte
+    5       // R bit
+};
 
 void core1(){
     startGC(gc_status, n64_status, read_flag);

@@ -93,28 +93,34 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
     
         memset(n64_status, 0, 4);
 
-        n64_status[N64_A_BYTE] |= ((gc_status[GC_A_BYTE] >> GC_A_BIT) & 0x01) << N64_A_BIT;
-        n64_status[N64_B_BYTE] |= ((gc_status[GC_B_BYTE] >> GC_B_BIT) & 0x01) << N64_B_BIT;
-        n64_status[N64_Z_BYTE] |= ((gc_status[GC_Z_BYTE] >> GC_Z_BIT) & 0x01) << N64_Z_BIT;
-        n64_status[N64_START_BYTE] |= ((gc_status[GC_START_BYTE] >> GC_START_BIT) & 0x01) << N64_START_BIT;
-        n64_status[N64_D_UP_BYTE] |= ((gc_status[GC_D_UP_BYTE] >> GC_D_UP_BIT) & 0x01) << N64_D_UP_BIT;
-        n64_status[N64_D_DOWN_BYTE] |= ((gc_status[GC_D_DOWN_BYTE] >> GC_D_DOWN_BIT) & 0x01) << N64_D_DOWN_BIT;
-        n64_status[N64_D_LEFT_BYTE] |= ((gc_status[GC_D_LEFT_BYTE] >> GC_D_LEFT_BIT) & 0x01) << N64_D_LEFT_BIT;
-        n64_status[N64_D_RIGHT_BYTE] |= ((gc_status[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
-        n64_status[N64_L_BYTE] |= ((gc_status[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
-        n64_status[N64_R_BYTE] |= ((gc_status[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
-        n64_status[N64_C_UP_BYTE] |= ((gc_status[5] > MAX_POSITIVE) ? 1 : 0) << N64_C_UP_BIT;
-        n64_status[N64_C_DOWN_BYTE] |= ((gc_status[5] < MAX_NEGATIVE) ? 1 : 0) << N64_C_DOWN_BIT;
-        n64_status[N64_C_LEFT_BYTE] |= ((gc_status[4] < MAX_NEGATIVE) ? 1 : 0) << N64_C_LEFT_BIT;
-        n64_status[N64_C_RIGHT_BYTE] |= ((gc_status[4] > MAX_POSITIVE) ? 1 : 0) << N64_C_RIGHT_BIT;
+        //n64_status[N64_A_BYTE] |= ((gc_status[GC_A_BYTE] >> GC_A_BIT) & 0x01) << N64_A_BIT;
+        n64_status[N64_A_BYTE] |= (gc_status[GC_A_BYTE] & (0x01 << GC_A_BIT)) ? 0x80 : 0x00;
+       // n64_status[N64_B_BYTE] |= ((gc_status[GC_B_BYTE] >> GC_B_BIT) & 0x01) << N64_B_BIT;
+        n64_status[N64_B_BYTE] |= (gc_status[GC_B_BYTE] & (0x01 << GC_B_BIT)) ? 0x40 : 0x00;
+        //n64_status[N64_Z_BYTE] |= ((gc_status[GC_Z_BYTE] >> GC_Z_BIT) & 0x01) << N64_Z_BIT;
+        n64_status[N64_Z_BYTE] |= (gc_status[GC_Z_BYTE] & (0x01 << GC_Z_BIT)) ? 0x20 : 0x00;
+        //n64_status[N64_START_BYTE] |= ((gc_status[GC_START_BYTE] >> GC_START_BIT) & 0x01) << N64_START_BIT;
+        n64_status[N64_START_BYTE] |= (gc_status[GC_START_BYTE] & (0x01 << GC_START_BIT)) ? 0x10 : 0x00;
+        //n64_status[N64_D_UP_BYTE] |= ((gc_status[GC_D_UP_BYTE] >> GC_D_UP_BIT) & 0x01) << N64_D_UP_BIT;
+        n64_status[N64_D_UP_BYTE] |= (gc_status[GC_D_UP_BYTE] & (0x01 << GC_D_UP_BIT)) ? 0x08 : 0x00;
+        //n64_status[N64_D_DOWN_BYTE] |= ((gc_status[GC_D_DOWN_BYTE] >> GC_D_DOWN_BIT) & 0x01) << N64_D_DOWN_BIT;
+        n64_status[N64_D_DOWN_BYTE] |= (gc_status[GC_D_DOWN_BYTE] & (0x01 << GC_D_DOWN_BIT)) ? 0x04 : 0x00;
+        //n64_status[N64_D_LEFT_BYTE] |= ((gc_status[GC_D_LEFT_BYTE] >> GC_D_LEFT_BIT) & 0x01) << N64_D_LEFT_BIT;
+        n64_status[N64_D_LEFT_BYTE] |= (gc_status[GC_D_LEFT_BYTE] & (0x01 << GC_D_LEFT_BIT)) ? 0x02 : 0x00;
+        //n64_status[N64_D_RIGHT_BYTE] |= ((gc_status[GC_D_RIGHT_BYTE] >> GC_D_RIGHT_BIT) & 0x01) << N64_D_RIGHT_BIT;
+        n64_status[N64_D_RIGHT_BYTE] |= (gc_status[GC_D_RIGHT_BYTE] & (0x01 << GC_D_RIGHT_BIT)) ? 0x01 : 0x00;
+        //n64_status[N64_L_BYTE] |= ((gc_status[GC_L_BYTE] >> GC_L_BIT) & 0x01) << N64_L_BIT;
+        n64_status[N64_L_BYTE] |= (gc_status[GC_L_BYTE] & (0x01 << GC_L_BIT)) ? 0x20 : 0x00;
+        //n64_status[N64_R_BYTE] |= ((gc_status[GC_R_BYTE] >> GC_R_BIT) & 0x01) << N64_R_BIT;
+        n64_status[N64_R_BYTE] |= (gc_status[GC_R_BYTE] & (0x01 << GC_R_BIT)) ? 0x10 : 0x00;
+        n64_status[N64_C_UP_BYTE] |= (gc_status[5] > MAX_POSITIVE) ? 0x08 : 0x00;
+        n64_status[N64_C_DOWN_BYTE] |= (gc_status[5] < MAX_NEGATIVE) ? 0x04 : 0x00;
+        n64_status[N64_C_LEFT_BYTE] |= (gc_status[4] < MAX_NEGATIVE) ? 0x02 : 0x00;
+        n64_status[N64_C_RIGHT_BYTE] |= (gc_status[4] > MAX_POSITIVE) ? 0x01 : 0x00;
         n64_status[2] = gc_zero[0] + gc_status[2];
         n64_status[3] = gc_zero[1] + gc_status[3];
-        if(gc_status[6] > MAX_TRIGGER){
-            n64_status[1] |= 0x20;
-        }
-        if(gc_status[7] > MAX_TRIGGER){
-            n64_status[1] |= 0x10;
-        }
+        n64_status[1] |= (gc_status[6] > MAX_TRIGGER) ? 0x20 : 0x00;
+        n64_status[1] |= (gc_status[7] > MAX_TRIGGER) ? 0x10 : 0x00;
 
         if((n64_status[1] & 0x20) && (n64_status[1] & 0x10) && (n64_status[0] & 0x10)){
             n64_status[0] &= 0xEF;
