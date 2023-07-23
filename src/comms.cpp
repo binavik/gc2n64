@@ -37,7 +37,7 @@ void __time_critical_func(convertToPio)(const uint8_t* command, const int len, u
     result[len / 2] += 3 << (2 * (8 * (len % 2)));
 }
 
-void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool &read){
+void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool &read, bool &reboot){
     PIO pio = pio0;
     pio_gpio_init(pio, GC_PIN);
     uint offset = pio_add_program(pio, &joybus_program);
@@ -77,6 +77,9 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
     read = false;
     while(true){
         while(!read){
+            if(reboot){
+                while(true){}
+            }
             watchdog_update();
         }
 

@@ -1,8 +1,13 @@
+#include <stdio.h>
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
+#include "pico/bootrom.h"
+
+
 #include "comms.h"
 
 bool read_flag;
+bool reboot_flag;
 
 //global variable, 8 bytes from controller
 //byte 0: bits 0, 0, 0, Start, Y, X, B, A
@@ -50,12 +55,21 @@ mapping default_mapping = {
     5       // R bit
 };
 
+void y_btn(){
+    stdio_init_all();
+    while(true){
+        fprintf(stderr, "y button was held during boot\n");
+    }
+}
+
 void core1(){
-    startGC(gc_status, n64_status, read_flag);
+    startGC(gc_status, n64_status, read_flag, reboot_flag);
 }
 
 int main() {
+    uint8_t start_button, y_button;
     read_flag = true;
+    reboot_flag = false;
 //init USB serial communication
 #if DEBUG
     stdio_init_all();
@@ -67,6 +81,16 @@ int main() {
     sleep_ms(1);
     multicore_launch_core1(core1);
     while(read_flag){}
+    sleep_us(400);
+    start_button = gc_status[0] & 0x10;
+    y_button = gc_status[0] & 0x08;
+    if(start_button){
+        reboot_flag = true;
+        reset_usb_boot(0,0);
+    }
+    if(y_button){
+        y_btn();
+    }
     startN64(gc_status, n64_status, read_flag);
     return 0; 
 }

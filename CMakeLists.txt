@@ -30,6 +30,7 @@ target_link_libraries(n64_adapter
     pico_stdlib
     pico_multicore
     hardware_pio
+    hardware_flash
     )
 
 pico_enable_stdio_usb(n64_adapter 1)

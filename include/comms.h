@@ -94,5 +94,5 @@ struct mapping{
 #define N64_C_RIGHT_BYTE    1
 #define N64_C_RIGHT_BIT     0
 
-void startGC(uint8_t* gc_status, uint8_t* n64_status, bool &read);
+void startGC(uint8_t* gc_status, uint8_t* n64_status, bool &read, bool &reboot);
 void startN64(uint8_t* gc_status, uint8_t* n64_status, bool &read);
