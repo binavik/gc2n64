@@ -169,7 +169,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
             pio_sm_set_enabled(pio, 0, true);
             while(read){};
-            sleep_us(4);
+            sleep_us(RESPONSE_DELAY);
 
             for(int i = 0; i < info_send_len; i++){
                 pio_sm_put_blocking(pio, 0, n64_info_response[i]);
@@ -180,7 +180,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             int result_len;
             convertToPio(n64_status, 4, result, result_len);
             while(read){}
-            sleep_us(4);
+            sleep_us(RESPONSE_DELAY);
 
             pio_sm_set_enabled(pio, 0, false);
             pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);

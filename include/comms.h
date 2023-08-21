@@ -8,10 +8,11 @@
 #define MAX_TRIGGER 0xb0
 
 #define WATCHDOG_DELAY_MS 100 
+#define RESPONSE_DELAY  3
 
 #define GC_ARR_SIZE 8
 #define GC_PIN 1
-#define N64_PIN 4
+#define N64_PIN 18
 
 #define MAX_NEGATIVE 0x50
 #define MAX_POSITIVE 0xb0
