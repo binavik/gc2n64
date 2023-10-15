@@ -11,8 +11,8 @@
 #define RESPONSE_DELAY  3
 
 #define GC_ARR_SIZE 8
-#define GC_PIN 1
-#define N64_PIN 18
+#define GC_PIN 18
+#define N64_PIN 1
 
 #define MAX_NEGATIVE 0x50
 #define MAX_POSITIVE 0xb0
