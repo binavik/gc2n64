@@ -37,7 +37,7 @@ void __time_critical_func(convertToPio)(const uint8_t* command, const int len, u
     result[len / 2] += 3 << (2 * (8 * (len % 2)));
 }
 
-void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool &read){
+void __time_critical_func(startGCCC)(uint8_t* gc_status, uint8_t* n64_status, bool &read){
     PIO pio = pio0;
     pio_gpio_init(pio, GC_PIN);
     uint offset = pio_add_program(pio, &joybus_program);
@@ -62,7 +62,7 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
 
     //init controller and get zero point, do this once outside of read loop
     pio_sm_set_enabled(pio, 0, false);
-    pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+    //pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
     pio_sm_set_enabled(pio, 0, true);
     watchdog_enable(WATCHDOG_DELAY_MS, 0);
 
@@ -81,7 +81,7 @@ void __time_critical_func(startGC)(uint8_t* gc_status, uint8_t* n64_status, bool
         }
 
         pio_sm_set_enabled(pio, 0, false);
-        pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+        //pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
         pio_sm_set_enabled(pio, 0, true);
 
         for(int i = 0; i < resultLen; i++){
@@ -157,7 +157,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
     //convertToPio(n64_info_command, 3, n64_info_response, info_send_len);
 
     read = true;
-    pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
+    //pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
     pio_sm_set_enabled(pio, 0, true);
     while(true){
         uint8_t command = pio_sm_get_blocking(pio, 0);
@@ -166,7 +166,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
 #endif
         if(command == 0xff || command == 0x00){
             pio_sm_set_enabled(pio, 0, false);
-            pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+            //pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
             pio_sm_set_enabled(pio, 0, true);
             while(read){};
             sleep_us(RESPONSE_DELAY);
@@ -183,7 +183,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
             sleep_us(RESPONSE_DELAY);
 
             pio_sm_set_enabled(pio, 0, false);
-            pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
+            //pio_sm_init(pio, 0, offset+joybus_offset_outmode, &config);
             pio_sm_set_enabled(pio, 0, true);
 
             for(int i = 0; i < result_len; i++){
@@ -196,7 +196,7 @@ void __time_critical_func(startN64)(uint8_t* gc_status, uint8_t* n64_status, boo
 #endif
             pio_sm_set_enabled(pio, 0, false);
             sleep_us(100);
-            pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
+            //pio_sm_init(pio, 0, offset+joybus_offset_inmode, &config);
             pio_sm_set_enabled(pio, 0, true);
         }
         read = true;

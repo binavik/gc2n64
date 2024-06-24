@@ -1,32 +1,85 @@
-; THIS PIO PROGRAM EXPECTS THE SYSTEM CLOCK TO BE 125MHz
-
-; Input is a succession of optional bools: (value/do we output something)
-; This makes so we can output an arbitrary number of bits without worrying about sizes
-; Useful since the end bit makes it so the output size is always = 1 [8]
-; Clock is / 5 i.e 25MHz
-;  This will crash if fed an output of len == -1 [Z/8Z]
-.program joybus ;
-PUBLIC inmode: ; Code must force a jump here once it's done using the out mode
-    set pindirs, 0 ;
-inagain: ;
-    wait 0 pin 0 [31] ; After the instruction complete we wait 61 cycles and read on the 62th
-    nop [31] ;
-    in pins, 1 ;
-    wait 1 pin 0 ;
-    jmp inagain ; 
-
 ;
-PUBLIC outmode: ; External code must force a jump here in reaction to the RX FIFO contents
-    set pins, 1 ;
-    set pindirs, 1 ;
-outagain: ;
-    pull ifempty block ; On pull 1 et ensuite on l'utilise pour X ET Y ?
-    out X, 1 ; X = what should we output
-    out Y, 1 ; Y = should we output something
-    jmp !Y inmode ; if Y 0, empty the queue
-    set pins, 0 [ 24 ] ;
-    mov pins, X [ 24 ] ;
-    mov pins, X [ 24 ] ;
-    set pins, 1 [ 19 ] ;
-    jmp outagain ;
+; Copyright (c) Hand Held Legend, LLC 2023
 ;
+
+.program joybus
+.side_set 1 optional
+
+; Repeatedly get one word of data from the TX FIFO, stalling when the FIFO is
+; empty. Write the least significant bit to the OUT pin group.
+
+.wrap_target
+
+; First we output data
+PUBLIC joybusdelay:
+    nop [7]
+    nop [7]
+    nop [7]
+    nop [7]
+    nop [6]
+    jmp y-- joybusdelay
+PUBLIC joybusout:
+output:
+    set pindirs 0 ; Set input (high)
+    out x, 1        [3] ; Delay wait high
+    set pindirs 1 side 0 ; Set pin low
+    jmp !x do_zero   side 0 [3]; Branch on the bit we shifted out. low pulse
+do_one:
+    set pindirs 0 ; Set input (high)
+    nop [2]
+    jmp !osre output side 1 [5] ; Drive high extended
+    jmp do_end
+do_zero:
+    nop side 0 [1]
+    jmp !osre output side 0 [7]
+do_end:
+    set pindirs 0
+    nop [3]
+    set pindirs 1 side 0
+    nop side 0 [1]
+    set pindirs 0 side 1
+    mov isr, null
+    ;irq nowait 0
+    ;jmp output
+bitloop:
+    wait 0 pin, 0 [7]
+    ; Get the level and put it into ISR
+    in pins, 1
+    wait 1 pin, 0 ; Wait for line HIGH
+    jmp bitloop
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void joybus_program_init(PIO pio, uint offset, uint pin, pio_sm_config config) {
+
+    // Must run 12800000hz
+    float div = clock_get_hz(clk_sys) / (4000000);
+
+    config = joybus_program_get_default_config(offset);
+    gpio_init(pin);
+
+    // Set this pin's GPIO function (connect PIO to the pad)
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, 0, pin, 1, true);
+
+    sm_config_set_in_pins(&config, pin);
+    sm_config_set_out_pins(&config, pin, 1);
+    sm_config_set_jmp_pin(&config, pin);
+    sm_config_set_set_pins(&config, pin, 1);
+
+    sm_config_set_clkdiv(&config, div);
+
+    // Set sideset pin
+    sm_config_set_sideset_pins(&config, pin);
+    sm_config_set_in_shift(&config, false, true, 32);
+    sm_config_set_out_shift(&config, false, true, 8);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, 0, offset, &config);
+
+    // Set the state machine running
+    pio_sm_set_enabled(pio, 0, true);
+}
+%}

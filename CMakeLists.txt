@@ -22,6 +22,9 @@ include_directories(
 add_executable(n64_adapter
     src/main.cpp
     src/comms.cpp
+    src/gamecube_controller.cpp
+    src/n64.cpp
+    src/common.cpp
     )
 
 pico_generate_pio_header(n64_adapter ${CMAKE_CURRENT_LIST_DIR}/pio/joybus.pio)
