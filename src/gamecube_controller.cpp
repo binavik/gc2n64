@@ -9,12 +9,14 @@ static union{
     uint8_t X;
 }gc_zero;
 static uint8_t disconnect_timer = 0;
+static gc_n64_mapping* current_mapping;
 
-void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset){
+void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset, gc_n64_mapping* mappings){
 #if DEBUG
     gc_status[0] = 0x00;
     gc_status[1] = 0x00;
 #endif
+    current_mapping = &mappings[0];
     uint8_t *bytes = (uint8_t*)gc_status;
     PIO pio = pio0;
     pio_sm_config config;
@@ -99,22 +101,36 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                         }
                     }
                 }
-                n64_status[0] =
-                    ((bytes[3] & 0x01) << 7) | //A
-                    ((bytes[3] & 0x02) << 5) | //B
-                    ((bytes[2] & 0x10) << 1) | //Z
-                    ((bytes[3] & 0x10))      | //Start
-                    ((bytes[2] & 0x0c))      | //Dpad up and down
-                    ((bytes[2] & 0x01) << 1) | //Dpad left
-                    ((bytes[2] & 0x02) >> 1)   //Dpad right
+                n64_status[0] = 
+                    (bytes[current_mapping -> A.byte] & (0x01 << current_mapping -> A.bit) ? 0x80 : 0x00) |
+                    (bytes[current_mapping -> B.byte] & (0x01 << current_mapping -> B.bit) ? 0x40 : 0x00) |
+                    (bytes[current_mapping -> Z.byte] & (0x01 << current_mapping -> Z.bit) ? 0x20 : 0x00) |
+                    (bytes[current_mapping -> Start.byte] & (0x01 << current_mapping -> Start.bit) ? 0x10 : 0x00) |
+                    (bytes[current_mapping -> Dup.byte] & (0x01 << current_mapping -> Dup.bit) ? 0x08 : 0x00) |
+                    (bytes[current_mapping -> Ddown.byte] & (0x01 << current_mapping -> Ddown.bit) ? 0x04 : 0x00) |
+                    (bytes[current_mapping -> Dleft.byte] & (0x01 << current_mapping -> Dleft.bit) ? 0x02 : 0x00) |
+                    (bytes[current_mapping -> Dright.byte] & (0x01 << current_mapping -> Dright.bit) ? 0x01 : 0x00)
                     ;
                 n64_status[1] = 0x00 |
-                    ((bytes[2] & 0x60) >> 1)                | //L and R
-                    (bytes[6] > MAX_POSITIVE ? 0x08 : 0x00) | //C up
-                    (bytes[6] < MAX_NEGATIVE ? 0x04 : 0x00) | //C down
-                    (bytes[7] < MAX_NEGATIVE ? 0x02 : 0x00) | //C left
-                    (bytes[7] > MAX_POSITIVE ? 0x01 : 0x00)   //C right
+                    (bytes[current_mapping -> L.byte] & (0x01 << current_mapping -> L.bit) ? 0x20 : 0x00) |
+                    (bytes[current_mapping -> R.byte] & (0x01 << current_mapping -> R.bit) ? 0x10 : 0x00) |
+                    (bytes[6] > MAX_POSITIVE ? 0x08 : 0x00) |   //Cup
+                    (bytes[6] < MAX_NEGATIVE ? 0x04 : 0x00) |   //Cdown
+                    (bytes[7] < MAX_NEGATIVE ? 0x02 : 0x00) |   //Cleft
+                    (bytes[7] > MAX_POSITIVE ? 0x01 : 0x00)     //Cright
                     ;
+                if(current_mapping -> Cup.byte > 0){
+                    n64_status[1] |= bytes[current_mapping -> Cup.byte] & (0x01 << current_mapping -> Cup.bit) ? 0x08 : 0x00;
+                }
+                if(current_mapping -> Cdown.byte > 0){
+                    n64_status[1] |= bytes[current_mapping -> Cdown.byte] & (0x01 << current_mapping -> Cdown.bit) ? 0x04 : 0x00;
+                }
+                if(current_mapping -> Cleft.byte > 0){
+                    n64_status[1] |= bytes[current_mapping -> Cleft.byte] & (0x01 << current_mapping -> Cleft.bit) ? 0x02 : 0x00;
+                }
+                if(current_mapping -> Cright.byte > 0){
+                    n64_status[1] |= bytes[current_mapping -> Cright.byte] & (0x01 << current_mapping -> Cright.bit) ? 0x01 : 0x00;
+                }
                 n64_status[2] = (uint8_t)(bytes[1] - gc_zero.X);
                 n64_status[3] = (uint8_t)(bytes[0] - gc_zero.Y);
 
@@ -125,7 +141,7 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                     gc_zero.Y = bytes[0];
                 }
 #if DEBUG
-                //fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+                fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
 #endif
                 break;
             }

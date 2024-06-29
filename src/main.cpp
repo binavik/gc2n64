@@ -29,16 +29,39 @@ static uint8_t n64_status[4];
 
 static State gc_state;
 
+static const gc_n64_mapping default_mapping = {
+    {3, 0},     //A
+    {3, 1},     //B
+    {2, 4},     //Z
+    {3, 4},     //Start
+    {2, 3},     //Dup
+    {2, 2},     //Ddown
+    {2, 0},     //Dleft
+    {2, 1},     //Dright
+    {2, 6},     //L
+    {2, 5},     //R
+    {0, 0},     //Cup
+    {0, 0},     //Cdown
+    {0, 0},     //Cleft
+    {0, 0}     //Cright
+};
+
+static gc_n64_mapping mappings[0x0f];
+
 void init(){
 #if DEBUG
     stdio_init_all();
 #endif
 //may want to replace this with a mutex
     read_flag = true;
+    //todo, separate function to read any saved mappings from flash to the mappings array
+    for(int i = 0; i < 0x0f; i++){
+        mappings[i] = default_mapping;
+    }
 }
 
 void core1(){
-    startGC(gc_status, n64_status, read_flag, gc_state, offset);
+    startGC(gc_status, n64_status, read_flag, gc_state, offset, mappings);
 }
 
 int main() {

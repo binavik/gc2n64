@@ -19,4 +19,26 @@ enum State{
     CONNECTED = 2       //connected and zeroed, poll normally
 };
 
+struct button{
+    uint8_t byte;
+    uint8_t bit;
+};
+
+typedef struct{
+    button A;
+    button B;
+    button Z;
+    button Start;
+    button Dup;
+    button Ddown;
+    button Dleft;
+    button Dright;
+    button L;
+    button R;
+    button Cup;
+    button Cdown;
+    button Cleft;
+    button Cright;
+}gc_n64_mapping;
+
 #endif

@@ -11,6 +11,6 @@
 #define MAX_POSITIVE 0xb0
 
 
-void startGC(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset);
+void startGC(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset, gc_n64_mapping* mappings);
 
 #endif
