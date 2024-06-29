@@ -52,7 +52,7 @@ bitloop:
 % c-sdk {
 #include "hardware/clocks.h"
 
-static inline void joybus_program_init(PIO pio, uint offset, uint pin, pio_sm_config config) {
+static inline void joybus_program_init(PIO pio, uint offset, uint pin, pio_sm_config config, uint in_shift, uint sm) {
 
     // Must run 12800000hz
     float div = clock_get_hz(clk_sys) / (4000000);
@@ -62,7 +62,7 @@ static inline void joybus_program_init(PIO pio, uint offset, uint pin, pio_sm_co
 
     // Set this pin's GPIO function (connect PIO to the pad)
     pio_gpio_init(pio, pin);
-    pio_sm_set_consecutive_pindirs(pio, 0, pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
 
     sm_config_set_in_pins(&config, pin);
     sm_config_set_out_pins(&config, pin, 1);
@@ -73,13 +73,13 @@ static inline void joybus_program_init(PIO pio, uint offset, uint pin, pio_sm_co
 
     // Set sideset pin
     sm_config_set_sideset_pins(&config, pin);
-    sm_config_set_in_shift(&config, false, true, 32);
+    sm_config_set_in_shift(&config, false, true, in_shift);
     sm_config_set_out_shift(&config, false, true, 8);
 
     // Load our configuration, and jump to the start of the program
-    pio_sm_init(pio, 0, offset, &config);
+    pio_sm_init(pio, sm, offset, &config);
 
     // Set the state machine running
-    pio_sm_set_enabled(pio, 0, true);
+    pio_sm_set_enabled(pio, sm, true);
 }
 %}
