@@ -9,14 +9,16 @@ static union{
     uint8_t X;
 }gc_zero;
 static uint8_t disconnect_timer = 0;
-static gc_n64_mapping* current_mapping;
+static gc_n64_mapping *current_mapping;
+static Mapping_State mapping_state = CHECK_MAPPING;
+uint8_t mapping_hold = 0;
 
-void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset, gc_n64_mapping* mappings){
+void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset, gc_n64_mapping** mappings){
 #if DEBUG
     gc_status[0] = 0x00;
     gc_status[1] = 0x00;
 #endif
-    current_mapping = &mappings[0];
+    current_mapping = mappings[0];
     uint8_t *bytes = (uint8_t*)gc_status;
     PIO pio = pio0;
     pio_sm_config config;
@@ -140,8 +142,37 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                     gc_zero.X = bytes[1];
                     gc_zero.Y = bytes[0];
                 }
+
+                //check for mapping change
+                switch (mapping_state){
+                    default:
+                    case CHECK_MAPPING:
+                        {
+                            if(((bytes[2] & 0x60) | (bytes[3] & 0x08)) == 0x68){
+                                mapping_state = HOLD_NEW_MAPPING;
+                            }
+                            break;
+                        }
+                    
+                    case HOLD_NEW_MAPPING:
+                        {    
+                            mapping_hold = (bytes[2] & 0x0f);
+                            if(((bytes[2] & 0x60) | (bytes[3] & 0x08)) != 0x68){
+                                mapping_state = CHANGE_MAPPING;
+                            }
+                            break;
+                        }    
+                    case CHANGE_MAPPING:
+                        {
+                            current_mapping = mappings[mapping_hold];
+                            mapping_state = CHECK_MAPPING;
+                            break;
+                        }
+                    break;
+                }
 #if DEBUG
-                fprintf(stderr, "%x %x %x %x\n", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+                fprintf(stderr, "%x %x %x %x ", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+                fprintf(stderr, "%x %x %x\n", current_mapping, &mappings[mapping_hold], mapping_hold);
 #endif
                 break;
             }

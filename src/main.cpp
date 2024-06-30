@@ -29,7 +29,7 @@ static uint8_t n64_status[4];
 
 static State gc_state;
 
-static const gc_n64_mapping default_mapping = {
+static gc_n64_mapping default_mapping = {
     {3, 0},     //A
     {3, 1},     //B
     {2, 4},     //Z
@@ -43,10 +43,27 @@ static const gc_n64_mapping default_mapping = {
     {0, 0},     //Cup
     {0, 0},     //Cdown
     {0, 0},     //Cleft
-    {0, 0}     //Cright
+    {0, 0}      //Cright
 };
 
-static gc_n64_mapping mappings[0x0f];
+static gc_n64_mapping c_usage = {
+    {3, 0},     //A
+    {3, 1},     //B
+    {2, 4},     //Z
+    {3, 4},     //Start
+    {2, 3},     //Dup
+    {2, 2},     //Ddown
+    {2, 0},     //Dleft
+    {2, 1},     //Dright
+    SKIP,       //L
+    {2, 5},     //R
+    {0, 0},     //Cup
+    {0, 0},     //Cdown
+    {3, 3},     //Cleft
+    {3, 2}      //Cright
+};
+
+static gc_n64_mapping *mappings[16] = {NULL};
 
 void init(){
 #if DEBUG
@@ -56,8 +73,9 @@ void init(){
     read_flag = true;
     //todo, separate function to read any saved mappings from flash to the mappings array
     for(int i = 0; i < 0x0f; i++){
-        mappings[i] = default_mapping;
+        mappings[i] = &default_mapping;
     }
+    mappings[0] = &c_usage;
 }
 
 void core1(){

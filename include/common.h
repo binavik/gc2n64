@@ -12,6 +12,7 @@
 #endif
 
 #define ALIGNED_JOYBUS_8(val) ((val) << 24)
+#define SKIP {3, 7}
 
 enum State{
     DISCONNECTED = 0,   //no controller is connected
