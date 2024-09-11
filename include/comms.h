@@ -1,6 +1,5 @@
 #ifndef comms
 #define comms
-#endif
 
 //set to 0 to disable serial output over USB
 #define DEBUG 0
@@ -8,7 +7,6 @@
 #define MAX_TRIGGER 0xb0
 
 #define WATCHDOG_DELAY_MS 100 
-#define RESPONSE_DELAY  3
 
 #define GC_ARR_SIZE 8
 #define GC_PIN 18
@@ -95,5 +93,4 @@ struct mapping{
 #define N64_C_RIGHT_BYTE    1
 #define N64_C_RIGHT_BIT     0
 
-void startGC(uint8_t* gc_status, uint8_t* n64_status, bool &read);
-void startN64(uint8_t* gc_status, uint8_t* n64_status, bool &read);
+#endif

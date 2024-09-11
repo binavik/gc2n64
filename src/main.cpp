@@ -1,72 +1,95 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
-#include "comms.h"
+#include "common.h"
+#include "gamecube_controller.h"
+#include "joybus.pio.h"
+#include "n64.h"
 
-bool read_flag;
+mutex hold_flag;
+bool data_ready;
+uint offset = pio_add_program(pio0, &joybus_program);
 
 //global variable, 8 bytes from controller
-//byte 0: bits 0, 0, 0, Start, Y, X, B, A
-//byte 1: bits 1, L, R, Z, Dup, Ddown, Dright, Dleft. Nintendo... why flip Dl and Dr? There's no reason for this
-//byte 2: stick_x
-//byte 3: stick_y
-//byte 4: cstick_x
-//byte 5: cstick_y
-//byte 6: left_trigger
-//byte 7: right_trigger
-static uint8_t gc_status[8];
+//stored as 2, 32 bit uints, when broken down into a single byte array, the bytes and order are as follows
+//byte 7: cstick_x
+//byte 6: cstick_y
+//byte 5: left_trigger
+//byte 4: right_trigger
+//byte 3: bits 0, 0, 0, Start, Y, X, B, A
+//byte 2: bits 1, L, R, Z, Dup, Ddown, Dright, Dleft. Nintendo... why flip Dl and Dr? There's no reason for this
+//byte 1: stick_x
+//byte 0: stick_y
 
-//Gamecube controller expects absolute values for sticks, with 0 being left/down and 255 being right/up
-//GC still reports zero point so we can use it for the N64, just needs to be saved first
-static uint8_t gc_zero[2];
+static uint32_t gc_status[2];
 
 //global variable, 4 bytes mapped from gc_status
 //byte 0: bits A, B, Z, Start, Dup, Ddown, Dleft, Dright
 //byte 1: Reset, 0, L, R, Cup, Cdown, Cleft, Cright
 //byte 2: stick_x
 //byte 3: stick_y
-static uint8_t n64_status[4];
-//N64 expects relative, or signed, values for the sticks.
-//default, in the event no other mappings have been defined
-mapping default_mapping = {
-    0,      // A byte
-    0,      // A bit
-    0,      // B byte
-    1,      // B bit
-    1,      // Z byte
-    4,      // Z bit
-    0,      // Start byte
-    4,      // Start bit
-    1,      // D Up byte
-    3,      // D Up bit
-    1,      // D Down byte
-    2,      // D Down bit
-    1,      // D Left byte
-    0,      // D Left bit
-    1,      // D Right byte
-    1,      // D Right bit
-    1,      // L byte
-    6,      // L bit
-    1,      // R byte
-    5       // R bit
+static uint8_t n64_status[4] = {0x00, 0x00, 0x00, 0x00};
+
+static State gc_state;
+
+static gc_n64_mapping default_mapping = {
+    {3, 0},     //A
+    {3, 1},     //B
+    {2, 4},     //Z
+    {3, 4},     //Start
+    {2, 3},     //Dup
+    {2, 2},     //Ddown
+    {2, 0},     //Dleft
+    {2, 1},     //Dright
+    {2, 6},     //L
+    {2, 5},     //R
+    {0, 0},     //Cup
+    {0, 0},     //Cdown
+    {0, 0},     //Cleft
+    {0, 0}      //Cright
 };
 
-void core1(){
-    startGC(gc_status, n64_status, read_flag);
-}
+static gc_n64_mapping c_usage = {
+    {3, 0},     //A
+    {3, 1},     //B
+    {2, 4},     //Z
+    {3, 4},     //Start
+    {2, 3},     //Dup
+    {2, 2},     //Ddown
+    {2, 0},     //Dleft
+    {2, 1},     //Dright
+    SKIP,       //L
+    {2, 5},     //R
+    {0, 0},     //Cup
+    {0, 0},     //Cdown
+    {3, 3},     //Cleft
+    {3, 2}      //Cright
+};
 
-int main() {
-    read_flag = true;
-//init USB serial communication
+static gc_n64_mapping *mappings[16] = {NULL};
+
+void init(){
+    
 #if DEBUG
     stdio_init_all();
 #endif
-    gpio_init(GC_PIN);
-    gpio_set_dir(GC_PIN, GPIO_IN);
-    gpio_init(N64_PIN);
-    gpio_set_dir(N64_PIN, GPIO_IN);
-    sleep_ms(1);
+    mutex_init(&hold_flag);
+    //todo, separate function to read any saved mappings from flash to the mappings array
+    for(int i = 0; i < 0x0f; i++){
+        mappings[i] = &default_mapping;
+    }
+}
+
+void core1(){
+    startGC(gc_status, n64_status, gc_state, offset, mappings);
+}
+
+int main() {
+    gc_state = DISCONNECTED;
+    data_ready = false;
+    init();
+    sleep_ms(10);
     multicore_launch_core1(core1);
-    while(read_flag){}
-    startN64(gc_status, n64_status, read_flag);
+    sleep_ms(10);
+    startN64(n64_status);
     return 0; 
 }
