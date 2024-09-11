@@ -7,7 +7,6 @@
 #define MAX_TRIGGER 0xb0
 
 #define WATCHDOG_DELAY_MS 100 
-#define RESPONSE_DELAY  3
 
 #define GC_ARR_SIZE 8
 #define GC_PIN 18

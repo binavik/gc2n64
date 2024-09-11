@@ -1,5 +1,6 @@
 #include "common.h"
 #include "gamecube_controller.h"
+#include "joybus.pio.h"
 
 //GameCube controller expect absolute values for sticks, with 0 being left/down and 255 being right/up
 //GCC still reports a zero point, we save that to use in conversion as N64 expects relative position
@@ -12,8 +13,9 @@ static uint8_t disconnect_timer = 0;
 static gc_n64_mapping *current_mapping;
 static Mapping_State mapping_state = CHECK_MAPPING;
 uint8_t mapping_hold = 0;
+uint8_t disconnected[4] = {0x00, 0x00, 0x00, 0x00};
 
-void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, bool &read, State &gc_state, uint &offset, gc_n64_mapping** mappings){
+void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, State &gc_state, uint &offset, gc_n64_mapping** mappings){
 #if DEBUG
     gc_status[0] = 0x00;
     gc_status[1] = 0x00;
@@ -49,6 +51,14 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                 pio_sm_exec_wait_blocking(pio, 0, pio_encode_set(pio_y, 7));
                 break;
             }
+            case RECALIBRATE:
+            {
+                pio_sm_exec_wait_blocking(pio, 0, pio_encode_set(pio_y, 0));
+                pio_sm_exec_wait_blocking(pio, 0, pio_encode_jmp(offset));
+                pio_sm_put_blocking(pio, 0, ALIGNED_JOYBUS_8(0x42));
+                pio_sm_exec_wait_blocking(pio, 0, pio_encode_set(pio_y, 7));
+                break;
+            }
             case CONNECTED:
             {
                 pio_sm_exec_wait_blocking(pio, 0, pio_encode_jmp(offset + joybus_offset_joybusout));
@@ -72,9 +82,11 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                     sleep_us(100);
                     gc_state = ZERO;
                 }
+                memcpy(n64_status, disconnected, 4);
                 break;
             }
             case ZERO:
+            case RECALIBRATE:
             {
                 for(int i = 0; i < 2; i++){
                     if(!pio_sm_is_rx_fifo_empty(pio, 0)){
@@ -139,8 +151,7 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                 if((n64_status[1] & 0x20) && (n64_status[1] & 0x10) && (n64_status[0] & 0x10)){
                     n64_status[0] &= 0xef;
                     n64_status[1] |= 0x80;
-                    gc_zero.X = bytes[1];
-                    gc_zero.Y = bytes[0];
+                    gc_state = RECALIBRATE;
                 }
 
                 //check for mapping change
@@ -171,8 +182,8 @@ void __time_critical_func(startGC)(uint32_t* gc_status, uint8_t* n64_status, boo
                     break;
                 }
 #if DEBUG
-                fprintf(stderr, "%x %x %x %x ", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
-                fprintf(stderr, "%x %x %x\n", current_mapping, &mappings[mapping_hold], mapping_hold);
+                //fprintf(stderr, "%x %x %x %x ", n64_status[0], n64_status[1], n64_status[2], n64_status[3]);
+                //fprintf(stderr, "%x %x %x\n", current_mapping, &mappings[mapping_hold], mapping_hold);
 #endif
                 break;
             }

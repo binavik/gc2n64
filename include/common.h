@@ -4,8 +4,8 @@
 #define DEBUG 1
 
 #include "pico/stdlib.h"
+#include "pico/mutex.h"
 #include "hardware/pio.h"
-#include "joybus.pio.h"
 #if DEBUG
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +17,8 @@
 enum State{
     DISCONNECTED = 0,   //no controller is connected
     ZERO = 1,           //first iteration after connecting, requires zeroing
-    CONNECTED = 2       //connected and zeroed, poll normally
+    CONNECTED = 2,      //connected and zeroed, poll normally
+    RECALIBRATE = 3     //recenter controller
 };
 
 struct button{
