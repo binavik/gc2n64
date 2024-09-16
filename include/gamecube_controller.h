@@ -15,6 +15,6 @@ enum Mapping_State{
     CHANGE_MAPPING = 2
 };
 
-void startGC(uint32_t* gc_status, uint8_t* n64_status, State &gc_state, uint &offset, gc_n64_mapping** mappings);
+void startGC(uint32_t* gc_status, uint8_t* n64_status, State &gc_state, uint &offset, gc_n64_mapping* mappings);
 
 #endif

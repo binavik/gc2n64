@@ -4,8 +4,8 @@
 #include "gamecube_controller.h"
 #include "joybus.pio.h"
 #include "n64.h"
+#include "flash_utils.h"
 
-mutex hold_flag;
 bool data_ready;
 uint offset = pio_add_program(pio0, &joybus_program);
 
@@ -31,52 +31,18 @@ static uint8_t n64_status[4] = {0x00, 0x00, 0x00, 0x00};
 
 static State gc_state;
 
-static gc_n64_mapping default_mapping = {
-    {3, 0},     //A
-    {3, 1},     //B
-    {2, 4},     //Z
-    {3, 4},     //Start
-    {2, 3},     //Dup
-    {2, 2},     //Ddown
-    {2, 0},     //Dleft
-    {2, 1},     //Dright
-    {2, 6},     //L
-    {2, 5},     //R
-    {0, 0},     //Cup
-    {0, 0},     //Cdown
-    {0, 0},     //Cleft
-    {0, 0}      //Cright
-};
 
-static gc_n64_mapping c_usage = {
-    {3, 0},     //A
-    {3, 1},     //B
-    {2, 4},     //Z
-    {3, 4},     //Start
-    {2, 3},     //Dup
-    {2, 2},     //Ddown
-    {2, 0},     //Dleft
-    {2, 1},     //Dright
-    SKIP,       //L
-    {2, 5},     //R
-    {0, 0},     //Cup
-    {0, 0},     //Cdown
-    {3, 3},     //Cleft
-    {3, 2}      //Cright
-};
-
-static gc_n64_mapping *mappings[16] = {NULL};
+//this array is 448 bytes long, pico can only read from flash 256 bytes at a time, so 2 read need to be done
+// to pull from flash
+static gc_n64_mapping mappings[16];
 
 void init(){
     
 #if DEBUG
     stdio_init_all();
 #endif
-    mutex_init(&hold_flag);
     //todo, separate function to read any saved mappings from flash to the mappings array
-    for(int i = 0; i < 0x0f; i++){
-        mappings[i] = &default_mapping;
-    }
+    init_mappings(mappings);
 }
 
 void core1(){
@@ -89,6 +55,7 @@ int main() {
     init();
     sleep_ms(10);
     multicore_launch_core1(core1);
+    for(;;){}
     sleep_ms(10);
     startN64(n64_status);
     return 0; 
